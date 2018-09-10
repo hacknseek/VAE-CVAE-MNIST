@@ -1,0 +1,5 @@
+data/
+fig/
+figs/
+save_models/
+*.pyc
