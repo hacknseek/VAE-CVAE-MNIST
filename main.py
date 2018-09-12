@@ -39,7 +39,7 @@ def main(args):
     optimizer = torch.optim.Adam(vae.parameters(), lr=args.learning_rate)
 
     # fixed noise
-    fix_noise = Variable(torch.randn((50, args.latent_size)).cuda())
+    fix_noise = Variable(torch.randn((args.batch_size, args.latent_size)).cuda())
 
     # tracker_global = defaultdict(torch.FloatTensor)
 
@@ -49,10 +49,12 @@ def main(args):
         for _, batch in enumerate(data_loader, 0):
             img, label  = Variable(batch[0].cuda()), Variable(batch[1].cuda())
             
-            recon_img, mean, log_var, z = vae(img)
+            # recon_img, mean, log_var, z = vae(img)
 
             # CVAE
-            # recon_img, mean, log_var, z = vae(img, label)
+            if img.size()[0]!= 64:
+                print('batch size:',img.size()[0])
+            recon_img, mean, log_var, z = vae(img, label)
 
             loss = loss_fn(recon_img, img, mean, log_var)
             optimizer.zero_grad()
@@ -65,7 +67,8 @@ def main(args):
                 print("Batch {:04d}/{}, Loss {:9.4f}".format(num_iter, len(data_loader)-1, loss.data.item()))
 
             if num_iter % args.save_test_sample == 0:
-                x = vae.inference(fix_noise)
+                c = label*0 # TODO: given condition
+                x = vae.inference(fix_noise, c)
                 save_img(args, x.detach(), num_iter)
             
             if num_iter % args.save_recon_img == 0:

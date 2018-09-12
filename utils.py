@@ -7,7 +7,7 @@ import scipy.misc
 
 def to_var(x, volatile=False):
     if torch.cuda.is_available():
-        print('cuda')
+        # print('cuda')
         x = x.cuda()
     return Variable(x, volatile=volatile)
 
@@ -17,7 +17,7 @@ def idx2onehot(idx, n):
     assert torch.max(idx).data[0] < n
 
     onehot = torch.zeros(idx.size(0), n)
-    onehot.scatter_(1, idx.data, 1)
+    onehot.scatter_(1, idx.cpu().data, 1)
     onehot = to_var(onehot)
     
     return onehot
