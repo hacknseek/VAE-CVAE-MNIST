@@ -7,7 +7,7 @@ import pandas as pd
 # import seaborn as sns
 import matplotlib.pyplot as plt
 from torchvision import transforms
-from torchvision.datasets import MNIST
+from torchvision.datasets import MNIST, ImageFolder
 from torch.utils.data import DataLoader
 from collections import OrderedDict, defaultdict
 
@@ -33,8 +33,18 @@ def main(args):
     n_transform = transforms.Compose([transforms.ToTensor()])
     dataset = MNIST('data', transform=n_transform, download=True)
 
+    ### CVAE on facescrub5 ###
+    n_transform = transforms.Compose([transforms.Resize(28), transforms.ToTensor()])
+    dataset = ImageFolder('facescrub-5', transform=n_transform)
+    args.epochs = 10000
+    args.img_channel = 3
+    args.num_labels = 5
+    args.learning_rate = 0.005
+    args.save_test_sample = 1000
+    args.save_recon_img = 1000
+
     data_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
-    vae = VAE(args.latent_size).to(device)
+    vae = VAE(args.latent_size, args.num_labels, args.img_channel).to(device)
 
     optimizer = torch.optim.Adam(vae.parameters(), lr=args.learning_rate)
 
@@ -52,8 +62,8 @@ def main(args):
             # recon_img, mean, log_var, z = vae(img)
 
             # CVAE
-            if img.size()[0]!= 64:
-                print('batch size:',img.size()[0])
+            # if img.size()[0]!= 64:
+            #     print('batch size:',img.size()[0])
             recon_img, mean, log_var, z = vae(img, label)
 
             loss = loss_fn(recon_img, img, mean, log_var)
@@ -66,8 +76,9 @@ def main(args):
             if num_iter % args.print_every == 0:
                 print("Batch {:04d}/{}, Loss {:9.4f}".format(num_iter, len(data_loader)-1, loss.data.item()))
 
-            if num_iter % args.save_test_sample == 0:
+            if num_iter % args.save_test_sample == 0 and len(label) == 64:
                 c = label*0 # TODO: given condition
+                # c = torch.LongTensor([number]).cuda()
                 x = vae.inference(fix_noise, c)
                 save_img(args, x.detach(), num_iter)
             

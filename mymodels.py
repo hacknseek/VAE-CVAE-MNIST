@@ -8,15 +8,17 @@ import utils
 # device = 'cpu' if torch.cuda.is_available() else 'cuda'
 
 class VAE(nn.Module):
-    def __init__(self, latent_variable_size):
+    def __init__(self, latent_variable_size, num_class, num_channel):
         super().__init__()
-        nc = 1
+        self.num_channel = num_channel
+        self.num_class = num_class
+        # nc = num_channel
         ndf,ngf = 64, 64
-        num_class = 10 # CVAE
+        # num_class = 10 # CVAE
 
         # VAE Encoder
         self.Encoder = nn.Sequential(
-            nn.Conv2d((nc+num_class), ndf, 4, 2, 1, bias=False),
+            nn.Conv2d((self.num_channel+self.num_class), ndf, 4, 2, 1, bias=False),
             nn.LeakyReLU(0.2),
 
             nn.Conv2d(ndf, ndf*2, 4, 2, 1, bias=False),
@@ -41,8 +43,8 @@ class VAE(nn.Module):
             nn.BatchNorm2d(ngf*2),
             nn.LeakyReLU(0.2),
 
-            nn.ConvTranspose2d(ngf*2, nc, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(nc),
+            nn.ConvTranspose2d(ngf*2, self.num_channel, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(self.num_channel),
 
             nn.Sigmoid()
         )
@@ -55,8 +57,8 @@ class VAE(nn.Module):
     def encode(self, x, c):
         if c is not None:
             # restructure input
-            qq = utils.idx2onehot(c.view(-1,1), 10)
-            qq = qq.view(-1,10,1,1).expand(-1,-1,28,28)
+            qq = utils.idx2onehot(c.view(-1,1), self.num_class)
+            qq = qq.view(-1,self.num_class,1,1).expand(-1,-1,28,28)
             x = torch.cat([x, qq],1)
             # print('x:',x.size())
         
@@ -69,7 +71,7 @@ class VAE(nn.Module):
     def decode(self, z, c):
         if c is not None:
             # restructure input
-            qq = utils.idx2onehot(c.view(-1,1), 10)
+            qq = utils.idx2onehot(c.view(-1,1), self.num_class)
             z = torch.cat([z, qq],1)
 
         # print('z:', z.size())

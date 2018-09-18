@@ -2,4 +2,5 @@ data/
 fig/
 figs/
 save_models/
+facescrub-5/
 *.pyc
