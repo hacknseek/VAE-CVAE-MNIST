@@ -26,8 +26,14 @@ def save_img(args, x, num_iter, recon=False):
     display_row = 5
     display_col = 5
 
-    if not(os.path.exists(os.path.join(args.figroot))):
+    if not(os.path.exists(args.figroot)):
         os.mkdir(os.path.join(args.figroot))
+    save_root = os.path.join(args.figroot, args.data)
+    if not(os.path.exists(save_root)):
+        os.mkdir(os.path.join(save_root))
+    path_recon = os.path.join(save_root, 'recon')
+    if not(os.path.exists(path_recon)):
+        os.mkdir(path_recon)
 
     img_sz = args.img_size
     if args.img_channel == 1:
@@ -49,7 +55,7 @@ def save_img(args, x, num_iter, recon=False):
             else:
                 fig_img[row*img_sz:(row+1)*img_sz, col*img_sz:(col+1)*img_sz, :] = x[t,:,:,:]
             if recon == False:
-                scipy.misc.imsave(os.path.join(args.figroot, str(num_iter)+'.jpg'), fig_img)
+                scipy.misc.imsave(os.path.join(save_root, str(num_iter)+'.jpg'), fig_img)
             else:
-                scipy.misc.imsave(os.path.join(args.figroot, str(num_iter)+'_r.jpg'), fig_img)
+                scipy.misc.imsave(os.path.join(path_recon, str(num_iter)+'_r.jpg'), fig_img)
 

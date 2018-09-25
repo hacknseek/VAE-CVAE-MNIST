@@ -22,14 +22,24 @@ print('device: ', device)
 
 def main(args):
 
+    if not args.data == 'mnist':
+        # facescrub-5
+        args.epochs = 10000
+        args.img_channel = 3
+        args.num_labels = 5
+        args.learning_rate = 0.005
+        args.save_test_sample = 1000
+        args.save_recon_img = 1000
+
     # load weights
-    vae = VAE(args.latent_size).to(device)
-    vae.load_state_dict(torch.load('save_models/vae-10-9001.ckpt'))
+    #vae = VAE(args.latent_size).to(device)
+    vae = VAE(args.latent_size, args.num_labels, args.img_channel).to(device)
+    vae.load_state_dict(torch.load('save_models/vae-91-1001.ckpt'))
 
 
     for _ in range(5):
         img_row = None
-        for number in range(10):
+        for number in range(args.num_labels):
             c = torch.LongTensor([number]).cuda()
             c = c.view(1,-1)
             # print(c, c.size(), c.dtype) 
@@ -37,7 +47,12 @@ def main(args):
             style = style.view(1,-1)
             # print(style, style.size(), style.dtype)
             x = vae.inference(style, c)
-            x = x.view((28,28)).data.cpu().detach().numpy()
+            x = x.view((-1,28,28)).data.cpu().detach().numpy()
+            x = x.transpose(1,2,0)
+            # print(x.shape)
+            # plt.imshow(x)
+            # plt.show()
+            # exit()
             if img_row is None:
                 img_row = x
             else:
@@ -73,6 +88,7 @@ if __name__ == '__main__':
 
     parser.add_argument("--save_model", type=int, default=1000)
     parser.add_argument("--save_root", default='save_models')
+    parser.add_argument("--data", default='mnist')
 
     args = parser.parse_args()
 

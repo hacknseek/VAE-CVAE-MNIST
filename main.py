@@ -29,19 +29,20 @@ def main(args):
     # datasets = OrderedDict()
     # datasets['train'] = MNIST(root='data', train=True, transform=transforms.ToTensor(), download=True)
     
-    ### VAE on MNIST ###
-    n_transform = transforms.Compose([transforms.ToTensor()])
-    dataset = MNIST('data', transform=n_transform, download=True)
-
-    ### CVAE on facescrub5 ###
-    n_transform = transforms.Compose([transforms.Resize(28), transforms.ToTensor()])
-    dataset = ImageFolder('facescrub-5', transform=n_transform)
-    args.epochs = 10000
-    args.img_channel = 3
-    args.num_labels = 5
-    args.learning_rate = 0.005
-    args.save_test_sample = 1000
-    args.save_recon_img = 1000
+    if args.data == 'mnist':
+        ### CVAE on MNIST ###
+        n_transform = transforms.Compose([transforms.ToTensor()])
+        dataset = MNIST('data', transform=n_transform, download=True)
+    else:
+        ### CVAE on facescrub5 ###
+        n_transform = transforms.Compose([transforms.Resize(28), transforms.ToTensor()])
+        dataset = ImageFolder('facescrub-5', transform=n_transform)
+        args.epochs = 10000
+        args.img_channel = 3
+        args.num_labels = 5
+        args.learning_rate = 0.005
+        args.save_test_sample = 1000
+        args.save_recon_img = 1000
 
     data_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
     vae = VAE(args.latent_size, args.num_labels, args.img_channel).to(device)
@@ -77,7 +78,7 @@ def main(args):
                 print("Batch {:04d}/{}, Loss {:9.4f}".format(num_iter, len(data_loader)-1, loss.data.item()))
 
             if num_iter % args.save_test_sample == 0 and len(label) == 64:
-                c = label*0 # TODO: given condition
+                c = label*0+2 # TODO: given condition
                 # c = torch.LongTensor([number]).cuda()
                 x = vae.inference(fix_noise, c)
                 save_img(args, x.detach(), num_iter)
@@ -89,7 +90,9 @@ def main(args):
             if num_iter % args.save_model == 0:
                 if not(os.path.exists(os.path.join(args.save_root))):
                     os.mkdir(os.path.join(args.save_root))
-                torch.save(vae.state_dict(), os.path.join(args.save_root, 'vae-{}-{}.ckpt'.format(epoch+1, num_iter+1)))
+                if not(os.path.exists(os.path.join(args.save_root, args.data))):
+                    os.mkdir(os.path.join(args.save_root, args.data))
+                torch.save(vae.state_dict(), os.path.join(args.save_root, args.data,'vae-{}-{}.ckpt'.format(epoch+1, num_iter+1)))
 
 if __name__ == '__main__':
 
@@ -112,6 +115,7 @@ if __name__ == '__main__':
 
     parser.add_argument("--save_model", type=int, default=1000)
     parser.add_argument("--save_root", default='save_models')
+    parser.add_argument("--data", default='mnist')
 
     args = parser.parse_args()
 
