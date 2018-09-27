@@ -33,19 +33,29 @@ def main(args):
         ### CVAE on MNIST ###
         n_transform = transforms.Compose([transforms.ToTensor()])
         dataset = MNIST('data', transform=n_transform, download=True)
+        args.img_size = 28
+        args.epochs = 10000
+        args.img_channel = 1
+        args.num_labels = 10
+        args.learning_rate = 0.001
+        args.save_test_sample = 1000
+        args.save_recon_img = 1000
     else:
+        args.data == 'face'
         ### CVAE on facescrub5 ###
-        n_transform = transforms.Compose([transforms.Resize(28), transforms.ToTensor()])
+        n_transform = transforms.Compose([transforms.Resize(32), transforms.ToTensor()])
         dataset = ImageFolder('facescrub-5', transform=n_transform)
+        args.img_size = 32
         args.epochs = 10000
         args.img_channel = 3
         args.num_labels = 5
-        args.learning_rate = 0.005
+        args.learning_rate = 0.001
         args.save_test_sample = 1000
         args.save_recon_img = 1000
 
+
     data_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
-    vae = VAE(args.latent_size, args.num_labels, args.img_channel).to(device)
+    vae = VAE(args.latent_size, args.num_labels, args.img_channel, args.img_size).to(device)
 
     optimizer = torch.optim.Adam(vae.parameters(), lr=args.learning_rate)
 
