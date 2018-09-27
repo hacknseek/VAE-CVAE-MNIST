@@ -3,51 +3,97 @@ import torch.nn as nn
 # from utils import to_var, idx2onehot
 from torch.autograd import Variable
 import numpy as np
+import math
 import utils
 
 # device = 'cpu' if torch.cuda.is_available() else 'cuda'
 
 class VAE(nn.Module):
-    def __init__(self, latent_variable_size, num_class, num_channel):
+    def __init__(self, latent_variable_size, num_class, num_channel, img_size):
         super().__init__()
         self.num_channel = num_channel
         self.num_class = num_class
-        # nc = num_channel
+        self.img_size = img_size
+        self.img_size_s = int(img_size/4)
         ndf,ngf = 64, 64
-        # num_class = 10 # CVAE
 
         # VAE Encoder
-        self.Encoder = nn.Sequential(
-            nn.Conv2d((self.num_channel+self.num_class), ndf, 4, 2, 1, bias=False),
-            nn.LeakyReLU(0.2),
+        if self.img_size == 28:
+            self.Encoder = nn.Sequential(
+                nn.Conv2d((self.num_channel+self.num_class), ndf, 4, 2, 1, bias=False),
+                nn.LeakyReLU(0.2),
 
-            nn.Conv2d(ndf, ndf*2, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(ndf*2),
-            nn.LeakyReLU(0.2),
+                nn.Conv2d(ndf, ndf*2, 4, 2, 1, bias=False),
+                nn.BatchNorm2d(ndf*2),
+                nn.LeakyReLU(0.2),
 
-            nn.Conv2d(ndf*2, ndf*4, 7, 1, 0, bias=False),
-            nn.BatchNorm2d(ndf*4),
-        )
+                nn.Conv2d(ndf*2, ndf*4, 7, 1, 0, bias=False),
+                nn.BatchNorm2d(ndf*4),
+            )
+        else:
+            self.Encoder = nn.Sequential(
+                nn.Conv2d((self.num_channel+self.num_class), ndf, 4, 2, 1, bias=False),
+                nn.LeakyReLU(0.2),
+
+                nn.Conv2d(ndf, ndf*2, 4, 2, 1, bias=False),
+                nn.BatchNorm2d(ndf*2),
+                nn.LeakyReLU(0.2),
+
+                nn.Conv2d(ndf*2, ndf*4, 7, 4, 1, bias=False),
+                nn.BatchNorm2d(ndf*4),
+            )
 
         self.mu = nn.Linear(ndf*4*1*1, latent_variable_size)
         self.logvar = nn.Linear(ndf*4*1*1, latent_variable_size)
 
         # VAE Decoder
-        self.Decoder_input = nn.Sequential(
+        if self.img_size == 28:
+            self.Decoder_input = nn.Sequential(
             nn.Linear(latent_variable_size+num_class, ndf*4*7*7, bias=False),
             nn.LeakyReLU(0.2),
-        )
+            )
+        else:
+            self.Decoder_input = nn.Sequential(
+            nn.Linear(latent_variable_size+num_class, ndf*4*8*8, bias=False),
+            nn.LeakyReLU(0.2),
+            )
+        # self.Decoder_input = nn.Sequential(
+        #     nn.Linear(latent_variable_size+num_class, ndf*4*7*7, bias=False),
+        #     nn.LeakyReLU(0.2),
+        # )
 
         self.Decoder = nn.Sequential(
             nn.ConvTranspose2d(ngf*4, ngf*2, 4, 2, 1, bias=False),
             nn.BatchNorm2d(ngf*2),
             nn.LeakyReLU(0.2),
-
+    
             nn.ConvTranspose2d(ngf*2, self.num_channel, 4, 2, 1, bias=False),
             nn.BatchNorm2d(self.num_channel),
-
+    
             nn.Sigmoid()
         )
+        # if self.img_size == 28:
+        #     self.Decoder = nn.Sequential(
+        #         nn.ConvTranspose2d(ngf*4, ngf*2, 4, 2, 1, bias=False),
+        #         nn.BatchNorm2d(ngf*2),
+        #         nn.LeakyReLU(0.2),
+    
+        #         nn.ConvTranspose2d(ngf*2, self.num_channel, 4, 2, 1, bias=False),
+        #         nn.BatchNorm2d(self.num_channel),
+    
+        #         nn.Sigmoid()
+        #     )
+        # else:
+        #     self.Decoder = nn.Sequential(
+        #     nn.ConvTranspose2d(ngf*4, ngf*2, 4, 2, 1, bias=False),
+        #     nn.BatchNorm2d(ngf*2),
+        #     nn.LeakyReLU(0.2),
+
+        #     nn.ConvTranspose2d(ngf*2, self.num_channel, 4, 2, 1, bias=False),
+        #     nn.BatchNorm2d(self.num_channel),
+
+        #     nn.Sigmoid()
+        #     )
     
     def reparameterize(self, mu, logvar):
         std = torch.exp(0.5*logvar)
@@ -58,12 +104,13 @@ class VAE(nn.Module):
         if c is not None:
             # restructure input
             qq = utils.idx2onehot(c.view(-1,1), self.num_class)
-            qq = qq.view(-1,self.num_class,1,1).expand(-1,-1,28,28)
+            qq = qq.view(-1,self.num_class,1,1).expand(-1,-1,self.img_size,self.img_size)
             x = torch.cat([x, qq],1)
-            # print('x:',x.size())
         
         x = self.Encoder(x)
         x = x.view(x.size(0), -1)
+        
+        # exit()
         mu, logvar = self.mu(x), self.logvar(x)
         z = self.reparameterize(mu, logvar)
         return mu, logvar, z
@@ -74,9 +121,8 @@ class VAE(nn.Module):
             qq = utils.idx2onehot(c.view(-1,1), self.num_class)
             z = torch.cat([z, qq],1)
 
-        # print('z:', z.size())
         recon_x = self.Decoder_input(z)
-        recon_x = recon_x.view(recon_x.size(0), -1, 7, 7)
+        recon_x = recon_x.view(recon_x.size(0), -1, self.img_size_s, self.img_size_s)
         recon_x = self.Decoder(recon_x)
         return recon_x
 
