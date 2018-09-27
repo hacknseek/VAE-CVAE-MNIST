@@ -25,19 +25,20 @@ def main(args):
     if not args.data == 'mnist':
         args.data == 'face'
         # facescrub-5
+        args.img_size = 32
         args.epochs = 10000
         args.img_channel = 3
         args.num_labels = 5
         args.learning_rate = 0.005
         args.save_test_sample = 1000
         args.save_recon_img = 1000
-        args.model_path = 'save_models/face/vae-91-1001.ckpt'
+        args.model_path = 'save_models/face/vae-2273-25001.ckpt'
     else:
         args.model_path = 'save_models/mnist/vae-4-3001.ckpt'
 
     # load weights
     #vae = VAE(args.latent_size).to(device)
-    vae = VAE(args.latent_size, args.num_labels, args.img_channel).to(device)
+    vae = VAE(args.latent_size, args.num_labels, args.img_channel, args.img_size).to(device)
     vae.load_state_dict(torch.load(args.model_path))
 
 
@@ -56,10 +57,10 @@ def main(args):
 
             # form a numpy image
             if args.data == 'mnist':
-                x = x.view((28,28,1)).data.cpu().detach().numpy()
+                x = x.view((args.img_size,args.img_size,1)).data.cpu().detach().numpy()
                 x = x.repeat(3,2)
             else:
-                x = x.view((3,28,28)).data.cpu().detach().numpy()
+                x = x.view((3,args.img_size,args.img_size)).data.cpu().detach().numpy()
                 x = x.transpose(1,2,0)
 
             if img_row is None:

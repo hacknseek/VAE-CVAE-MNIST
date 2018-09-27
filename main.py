@@ -40,6 +40,14 @@ def main(args):
         args.learning_rate = 0.001
         args.save_test_sample = 1000
         args.save_recon_img = 1000
+
+        # model
+        data_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
+        vae = VAE(args.latent_size, args.num_labels, args.img_channel, args.img_size).to(device)
+
+        # optimizer
+        optimizer = torch.optim.Adam(vae.parameters(), lr=args.learning_rate)
+
     else:
         args.data == 'face'
         ### CVAE on facescrub5 ###
@@ -53,11 +61,19 @@ def main(args):
         args.save_test_sample = 1000
         args.save_recon_img = 1000
 
+        # model
+        data_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
+        vae = VAE(args.latent_size, args.num_labels, args.img_channel, args.img_size).to(device)
 
-    data_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, num_workers=2)
-    vae = VAE(args.latent_size, args.num_labels, args.img_channel, args.img_size).to(device)
+        # optimizer
+        optimizer = torch.soptim.Adam(vae.parameters(), lr=args.learning_rate*2)
+        # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.5)
+        
 
-    optimizer = torch.optim.Adam(vae.parameters(), lr=args.learning_rate)
+
+    
+
+    
 
     # fixed noise
     fix_noise = Variable(torch.randn((args.batch_size, args.latent_size)).cuda())
@@ -103,6 +119,12 @@ def main(args):
                 if not(os.path.exists(os.path.join(args.save_root, args.data))):
                     os.mkdir(os.path.join(args.save_root, args.data))
                 torch.save(vae.state_dict(), os.path.join(args.save_root, args.data,'vae-{}-{}.ckpt'.format(epoch+1, num_iter+1)))
+            
+        # # scheduler
+        # try:
+        #     scheduler.step()
+        # except:
+        #     pass
 
 if __name__ == '__main__':
 
