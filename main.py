@@ -66,7 +66,7 @@ def main(args):
         vae = VAE(args.latent_size, args.num_labels, args.img_channel, args.img_size).to(device)
 
         # optimizer
-        optimizer = torch.optim.Adam(vae.parameters(), lr=args.learning_rate*2)
+        optimizer = torch.optim.Adam(vae.parameters(), lr=args.learning_rate)
         # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.5)
         
 
